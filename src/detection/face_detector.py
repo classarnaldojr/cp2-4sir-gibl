@@ -5,6 +5,8 @@ from typing import Tuple
 import cv2
 import mediapipe as mp
 import numpy as np
+from mediapipe.tasks.python import vision
+from mediapipe.tasks.python.core.base_options import BaseOptions
 
 from .eye_analyzer import EyeAnalyzer
 from .head_pose_analyzer import HeadPoseAnalyzer
@@ -12,17 +14,9 @@ from .types import DetectionResult
 
 
 class FaceDetector:
-    """
-    Wraps MediaPipe FaceMesh to expose only the signals needed for
-    attention analysis: per-eye EAR values and normalized head pose.
-    """
-
-    # Six-point EAR landmark indices for each eye (MediaPipe FaceMesh).
-    # Order: outer_corner, upper_inner, upper_outer, inner_corner, lower_outer, lower_inner
     _RIGHT_EYE: Tuple[int, ...] = (33, 160, 158, 133, 153, 144)
-    _LEFT_EYE: Tuple[int, ...]  = (362, 385, 387, 263, 373, 380)
+    _LEFT_EYE:  Tuple[int, ...] = (362, 385, 387, 263, 373, 380)
 
-    # Structural landmarks for head pose estimation
     _NOSE_TIP:    int = 4
     _LEFT_CHEEK:  int = 234
     _RIGHT_CHEEK: int = 454
@@ -33,22 +27,27 @@ class FaceDetector:
         self,
         min_detection_confidence: float = 0.7,
         min_tracking_confidence: float = 0.5,
+        model_path: str = "face_landmarker.task",
     ) -> None:
-        self._face_mesh = mp.solutions.face_mesh.FaceMesh(
-            max_num_faces=1,
-            refine_landmarks=False,
-            min_detection_confidence=min_detection_confidence,
+        options = vision.FaceLandmarkerOptions(
+            base_options=BaseOptions(model_asset_path=model_path),
+            output_face_blendshapes=False,
+            output_facial_transformation_matrixes=False,
+            min_face_detection_confidence=min_detection_confidence,
             min_tracking_confidence=min_tracking_confidence,
+            num_faces=1,
         )
+        self._landmarker = vision.FaceLandmarker.create_from_options(options)
 
     def process(self, frame: np.ndarray) -> DetectionResult:
         rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        results = self._face_mesh.process(rgb)
+        mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
+        results = self._landmarker.detect(mp_image)
 
-        if not results.multi_face_landmarks:
+        if not results.face_landmarks:
             return DetectionResult(face_detected=False)
 
-        lm = results.multi_face_landmarks[0].landmark
+        lm = results.face_landmarks[0]
         h, w = frame.shape[:2]
 
         def px(idx: int) -> Tuple[float, float]:
@@ -69,6 +68,10 @@ class FaceDetector:
             chin        = px(self._CHIN),
         )
 
+        # Reconstrói objeto compatível com o restante do código
+        class _FakeLandmarks:
+            landmark = lm
+
         return DetectionResult(
             face_detected=True,
             left_ear=left_ear,
@@ -77,8 +80,8 @@ class FaceDetector:
             head_pose=head_pose,
             eye_points=[right_eye_pts, left_eye_pts],
             nose_point=px(self._NOSE_TIP),
-            raw_landmarks=results.multi_face_landmarks[0],
+            raw_landmarks=_FakeLandmarks(),
         )
 
     def close(self) -> None:
-        self._face_mesh.close()
+        self._landmarker.close()
