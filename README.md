@@ -148,6 +148,12 @@ pytest
 - `test_attention_scorer.py`: estado inicial, dinamica de score (cap em 100, floor em 0, decaimento vs recuperacao), transicoes de estado (DISTRAIDO, SONOLENTO, AUSENTE com limiares de frame), contagem exclusiva de frames, calculo de porcentagem de atencao.
 
 ---
+## Integrantes
+* Gustavo Carvalho - RM 550983
+* Isaac Maranhos - RM 97847
+* Bruno Granado - RM 551411
+* Leticia Rocha - RM 552481
+---
 
 ## Referencias
 
