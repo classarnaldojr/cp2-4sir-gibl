@@ -5,6 +5,12 @@ Sistema de monitoramento de atenção em tempo real usando visão computacional.
 **Caso de uso primário:** cursos online, treinamentos corporativos e avaliações presenciais onde é necessário medir o engajamento sem hardware especializado.
 
 ---
+## Integrantes
+* Gustavo Carvalho - RM 550983
+* Isaac Maranhos - RM 97847
+* Bruno Granado - RM 551411
+* Leticia Rocha - RM 552481
+---
 
 ## Como funciona
 
